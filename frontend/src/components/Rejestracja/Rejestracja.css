@@ -1,0 +1,129 @@
+/* ======================================================
+   Styl Rejestracji — minimalistyczny, nowoczesny, energetyczny
+   ====================================================== */
+
+/* === Kontener formularza === */
+/* === Wspólny kontener formularzy === */
+.login-container,
+.register-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    padding: 2.5rem;
+    background: transparent;
+    animation: fade-in 0.8s ease forwards;
+}
+
+/* === Tytuły logowania/rejestracji === */
+.login-title,
+.register-title {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #ff0055; /* intensywny różowo-pomarańczowy */
+    letter-spacing: -0.5px;
+    text-align: center;
+}
+
+/* Opcjonalnie można dodać podświetlenie przy zaznaczeniu */
+.login-title::selection,
+.register-title::selection {
+    background: #ffae00;
+    color: #0d0d0d;
+}
+
+/* === Formularze === */
+.login-form,
+.register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    width: 100%;
+    max-width: 320px;
+}
+
+/* === Pola input === */
+.login-form input,
+.register-form input {
+    padding: 0.8rem 1rem;
+    border: 2px solid transparent;
+    border-radius: 10px;
+    background-color: rgba(255, 165, 0, 0.08); /* jasny pomarańcz */
+    color: #ff9900; /* tekst pomarańczowy */
+    font-size: 1rem;
+    transition: all 0.3s ease;
+}
+
+.login-form input:focus,
+.register-form input:focus {
+    outline: none;
+    border-color: #ff9900; /* mocniejszy pomarańczowy */
+    background-color: rgba(255, 165, 0, 0.15);
+}
+
+/* === Główny przycisk logowania/rejestracji === */
+.login-form button,
+.register-form button {
+    margin-top: 0.5rem;
+    border: none;
+    padding: 0.8rem 1rem;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #ff0055, #ff9900);
+    color: white;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.login-form button:hover,
+.register-form button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 153, 0, 0.4);
+}
+
+/* === Komunikaty błędów lub informacji === */
+.login-message,
+.register-message {
+    font-weight: 500;
+    margin-top: 0.5rem;
+}
+.register-message.success { color: green; }
+.register-message.error { color: red; }
+
+/* === Stopka logowania (przejście do rejestracji) === */
+.login-footer {
+    margin-top: 1rem;
+    text-align: center;
+    color: #ff9900;
+}
+
+.register-btn {
+    margin-top: 0.5rem;
+    padding: 0.6rem 1.2rem;
+    background: none;
+    border: 2px solid #ff9900; /* pomarańczowy border */
+    color: #ff9900; /* pomarańczowy tekst */
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.register-btn:hover {
+    background: #ff9900;
+    color: #0d0d0d;
+}
+
+/* === Animacja wejścia formularza === */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

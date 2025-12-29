@@ -1,0 +1,66 @@
+.logo {
+    position: relative;
+    display: inline-block;
+    font-family: 'Fredoka One', 'Poppins', sans-serif;
+    font-weight: 800;
+    text-transform: uppercase;
+    user-select: none;
+    perspective: 800px; /* nadaje efekt 3D */
+}
+
+/* BET - z tyłu */
+.bet {
+    display: inline-block;
+    background: linear-gradient(180deg, #ffae00 0%, #ff0055 100%); /* intensywne pomarańczowe/czerwone */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.05em;
+    text-shadow: 5px 5px 10px rgba(0, 0, 0, 0.2); /* subtelny kontrast */
+    font-size: clamp(2.5rem, 10vw, 6rem);
+    position: relative;
+    z-index: 1;
+    transform: translateZ(-20px) scale(0.95);
+    opacity: 1;
+}
+
+/* YA - na przodzie i niżej */
+.ya {
+    display: inline-block;
+    background: linear-gradient(180deg, #ffd300 0%, #ff5555 100%); /* intensywne żółto-pomarańczowe */
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: 0.12em;
+    text-shadow: 5px 5px 10px rgba(0, 0, 0, 0.2);
+    font-size: clamp(3rem, 12vw, 7rem);
+    position: relative;
+    top: 0.45em;     /* niżej niż wcześniej */
+    left: -0.3em;    /* lekko nachodzi na BET */
+    z-index: 3;
+    transform: translateZ(30px) scale(1.05);
+}
+
+/* Responsywność */
+@media (max-width: 600px) {
+    .bet {
+        transform: translateZ(-10px) scale(0.95);
+        font-size: clamp(2rem, 8vw, 4.5rem);
+    }
+
+    .ya {
+        transform: translateZ(20px) scale(1.05);
+        font-size: clamp(2.5rem, 9vw, 5.5rem);
+        top: 0.35em;
+        left: -0.25em;
+    }
+}
+
+/* Hover – subtelny efekt głębi */
+.logo:hover .ya {
+    transform: translateZ(40px) scale(1.08);
+    transition: transform 0.3s ease;
+}
+
+.logo:hover .bet {
+    transform: translateZ(-25px) scale(0.93);
+    transition: transform 0.3s ease;
+}

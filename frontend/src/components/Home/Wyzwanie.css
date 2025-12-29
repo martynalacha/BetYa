@@ -1,0 +1,343 @@
+/* === MODAL WYZWANIA === */
+.popup-form {
+    background: linear-gradient(90deg, rgba(255, 204, 102, 0.08), rgba(255, 153, 0, 0.1));
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    min-width: 400px;
+    max-width: 90%;
+    max-height: 85%;
+    overflow-y: auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* Tytuł i opis wyzwania */
+.popup-form h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.popup-form p {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: #e1e1e1;
+}
+
+/* === SEKCJA UCZESTNICY === */
+.uczestnicy-section {
+    margin: 1rem 0;
+}
+
+.uczestnicy-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.uczestnik-card {
+    background: linear-gradient(90deg, rgba(255, 204, 102, 0.08), rgba(255, 153, 0, 0.1));
+    border-left: 3px solid #ff9900;
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: #111;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.uczestnik-card:hover {
+    background: rgba(255, 153, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+/* === SEKCJA ZADANIA DZINNE === */
+.zadania-section {
+    margin-top: 1rem;
+}
+
+.zadanie-block {
+    background: linear-gradient(90deg, rgba(255, 204, 102, 0.08), rgba(255, 153, 0, 0.1));
+    border-left: 3px solid #ff9900;
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.8rem;
+    transition: background 0.2s, transform 0.2s;
+}
+
+.zadanie-block:hover {
+    background: rgba(255, 153, 0, 0.12);
+    transform: translateY(-1px);
+}
+
+/* Checkbox zadania */
+.zadanie-block label input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+/* Podzadania */
+.podzadania-list {
+    margin-top: 0.5rem;
+    padding-left: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.podzadanie-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+/* Checkbox podzadania */
+.podzadanie-row input[type="checkbox"] {
+    margin-right: 0.4rem;
+}
+
+/* === Pasek progresu === */
+.progress-container {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+}
+
+.progress-bar-small {
+    background: rgba(255, 153, 0, 0.2);
+    border-radius: 8px;
+    height: 10px;
+    width: 120px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    background: linear-gradient(90deg, #ff9900, #ffc84d);
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.75rem;
+    color: #111;
+}
+
+/* Kontener na przyciski - jeden pod drugim */
+.wyzwanie-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;              /* Odstęp między guzikami */
+    margin-top: 24px;
+    width: 100%;
+}
+
+/* WSPÓLNE style bazowe dla obu przycisków (żeby były równe) */
+.delete-btn,
+.close-btn {
+    width: 100%;            /* Pełna szerokość */
+    padding: 12px 16px;     /* Jednakowe odstępy wewnątrz */
+    border: none;
+    border-radius: 6px;     /* Jednakowe zaokrąglenie */
+    font-size: 0.95rem;     /* Jednakowa wielkość tekstu */
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Efekt najechania dla obu */
+.delete-btn:hover,
+.close-btn:hover {
+    transform: translateY(-2px); /* Lekkie uniesienie */
+    opacity: 0.9;
+}
+
+/* Efekt kliknięcia dla obu */
+.delete-btn:active,
+.close-btn:active {
+    transform: scale(0.98);
+}
+
+/* --- KOLORYSTYKA --- */
+
+/* Delete - Czerwony (ostrzegawczy) */
+.delete-btn {
+    background: #bf2020;
+    color: white;
+}
+
+/* Close - Szary (neutralny) lub Ciemny */
+/* Zmieniłem z czerwonego na szary, aby odróżnić od usuwania */
+.close-btn {
+    background:  #ff9900;
+    color: white;
+}
+
+/* Dark theme */
+body.dark .popup-form {
+    background: #2a2a2a;
+    color: #f5f5f5;
+}
+
+body.dark .uczestnik-card,
+body.dark .zadanie-block {
+    color: #f5f5f5;
+}
+
+body.dark .progress-text {
+    color: #f5f5f5;
+}
+/* === CUSTOM CHECKBOX === */
+.zadanie-block input[type="checkbox"],
+.podzadanie-row input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #ff9900;
+    border-radius: 4px;
+    background-color: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.zadanie-block input[type="checkbox"]:hover,
+.podzadanie-row input[type="checkbox"]:hover {
+    border-color: #ffc84d;
+}
+
+.zadanie-block input[type="checkbox"]:checked,
+.podzadanie-row input[type="checkbox"]:checked {
+    background: linear-gradient(90deg, #ff9900, #ffc84d);
+    border-color: #ff9900;
+}
+
+.zadanie-block input[type="checkbox"]:checked::after,
+.podzadanie-row input[type="checkbox"]:checked::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 5px;
+    width: 4px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Dark theme checkbox */
+body.dark .zadanie-block input[type="checkbox"],
+body.dark .podzadanie-row input[type="checkbox"] {
+    border-color: #ffc84d;
+}
+
+body.dark .zadanie-block input[type="checkbox"]:checked,
+body.dark .podzadanie-row input[type="checkbox"]:checked {
+    background: linear-gradient(90deg, #ff9900, #ffc84d);
+}
+
+/* === OPIS WYZWANIA === */
+.wyzwanie-opis {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #444; /* Nieco ciemniejszy dla czytelności */
+    padding: 0.8rem 1rem;
+    margin-bottom: 1rem;
+
+    /* Subtelne nawiązanie do reszty */
+    background-color: rgba(255, 255, 255, 0.4);
+    border-left: 3px solid #ffc84d; /* Jaśniejszy pomarańcz niż nagłówki */
+    border-radius: 0 8px 8px 0; /* Zaokrąglenie tylko z prawej */
+}
+
+/* === DATA / CZASOWE (Kontener główny) === */
+.wyzwanie-czasowe-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+
+    /* Energetyczny, ale delikatny gradient */
+    background: linear-gradient(90deg, rgba(255, 153, 0, 0.1), rgba(255, 204, 102, 0.05));
+    border: 1px solid rgba(255, 153, 0, 0.2);
+    padding: 0.5rem 0.8rem;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+
+    font-size: 0.9rem;
+    color: #333;
+    width: fit-content;
+    box-shadow: 0 2px 8px rgba(255, 153, 0, 0.05);
+}
+
+/* Napis "Czasowe" */
+.time-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #cc7a00; /* Ciemniejszy pomarańcz dla kontrastu */
+    opacity: 0.9;
+}
+
+/* Grupa dat i strzałki */
+.dates-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Pojedyncza data (kafelek) */
+.date-chip {
+    background-color: #fff;
+    padding: 3px 8px;
+    border-radius: 6px;
+
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #333;
+    font-variant-numeric: tabular-nums; /* Stała szerokość cyfr */
+
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.date-chip:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255, 153, 0, 0.4);
+}
+
+/* Strzałka pomiędzy datami */
+.date-arrow {
+    color: #ff9900;
+    font-weight: bold;
+    font-size: 0.8rem;
+}
+
+/* === DARK MODE (Obsługa ciemnego motywu) === */
+body.dark .wyzwanie-czasowe-container {
+    background: linear-gradient(90deg, rgba(255, 153, 0, 0.15), rgba(42, 42, 42, 0.5));
+    border-color: rgba(255, 153, 0, 0.3);
+}
+
+body.dark .date-chip {
+    background-color: #3a3a3a;
+    color: #f0f0f0;
+    border-color: #555;
+}
+
+body.dark .time-badge {
+    color: #ffc84d;
+}
+body.dark .wyzwanie-opis {
+    color: #ddd;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+

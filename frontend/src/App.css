@@ -1,0 +1,78 @@
+/* === GŁÓWNY KONTEJNER APLIKACJI === */
+#root {
+  max-width: 1280px;               /* ogranicza szerokość całej aplikacji */
+  margin: 0 auto;                  /* centruje ją poziomo */
+  padding: 2rem;                   /* wewnętrzne odstępy */
+  text-align: center;              /* wyśrodkowany tekst */
+  transition: background 0.5s, color 0.5s; /* płynne przejście przy zmianie motywu */
+}
+
+/* === MOTYW CIEMNY === */
+body.dark {
+  background-color: #0d0d0d;       /* ciemne tło */
+  color: #ffffff;                  /* jasny tekst */
+}
+
+/* === MOTYW JASNY === */
+body.light {
+  background-color: #ffffff;       /* białe tło */
+  color: #111111;                  /* ciemny tekst */
+}
+
+
+
+/* === SUWAK MOTYWU === */
+.theme-toggle {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+/* Styl samego przełącznika */
+.theme-toggle input[type="checkbox"] {
+  width: 40px;
+  height: 20px;
+  appearance: none;
+  background: #555;
+  border-radius: 20px;
+  position: relative;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+/* Kółko w przełączniku */
+.theme-toggle input[type="checkbox"]::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: white;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s;
+}
+
+/* Aktywny stan (jasny motyw) */
+.theme-toggle input[type="checkbox"]:checked {
+  background: #ff9900;
+}
+
+.theme-toggle input[type="checkbox"]:checked::before {
+  transform: translateX(20px);
+}
+
+/* === OGÓLNE ELEMENTY TEKSTU === */
+p {
+  font-size: 1.1rem;
+  opacity: 0.8;
+  max-width: 600px;
+  margin: 1.5rem auto;
+  line-height: 1.6;
+}

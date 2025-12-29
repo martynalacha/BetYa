@@ -1,0 +1,120 @@
+/* ======================================================
+   🌟 GLOBALNY STYL APLIKACJI BETYA
+   Nowoczesny, minimalistyczny, energetyczny wygląd.
+   ====================================================== */
+
+/* === Reset i ustawienia globalne === */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* === Zmienna główna: font, wygładzanie, jakość renderu === */
+:root {
+  font-family: "Poppins", system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.6;
+  font-weight: 400;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Kolory uniwersalne */
+  --primary-color: #ff5555;    /* mocny pomarańcz */
+  --secondary-color: #913a15;  /* intensywny róż/pomarańcz */
+  --text-light: #ffffff;
+  --text-dark: #111111;
+}
+
+/* === BODY === */
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  transition: background 0.5s ease, color 0.5s ease;
+  font-family: inherit;
+  background-color: var(--text-light);
+  color: var(--text-dark);
+}
+
+/* === Motyw ciemny === */
+body.dark {
+  background-color: #0d0d0d;
+  color: var(--text-light);
+}
+
+/* === Odnośniki (Linki) === */
+a {
+  font-weight: 500;
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--secondary-color);
+}
+
+/* === Nagłówki === */
+h1, h2, h3 {
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: inherit;
+}
+
+/* === Uniwersalne guziki === */
+button {
+  border-radius: 8px;
+  border: none;
+  padding: 0.6em 1.4em;
+  font-size: 1rem;
+  font-family: inherit;
+  cursor: pointer;
+  background: linear-gradient(90deg, var(--secondary-color), var(--primary-color));
+  color: var(--text-light);
+  transition: transform 0.2s ease, opacity 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 10px rgba(255, 153, 0, 0.25);
+  margin-bottom: 10px;
+}
+
+button:hover {
+  transform: scale(1.05);
+  opacity: 1;
+  box-shadow: 0 6px 15px rgba(255, 153, 0, 0.4);
+}
+
+/* === Responsywność dla mniejszych ekranów === */
+@media (max-width: 768px) {
+  h1.logo {
+    font-size: 2.5rem;
+  }
+
+  body {
+    padding: 1rem;
+  }
+
+  button {
+    padding: 0.5em 1.2em;
+    font-size: 0.95rem;
+  }
+}
+
+/* === Animacja płynnego wejścia całej aplikacji === */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#root {
+  animation: fade-in 1s ease forwards;
+}
