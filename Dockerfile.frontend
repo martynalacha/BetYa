@@ -1,0 +1,27 @@
+# 1. Bazowy obraz Node
+FROM node:20-alpine
+
+# 2. Katalog roboczy
+WORKDIR /frontend
+
+# 3. Kopiujemy package.json i package-lock.json
+COPY frontend/package*.json ./
+
+# 4. Instalacja zależności
+RUN npm install
+
+# 5. Kopiujemy cały frontend
+COPY frontend/ .
+
+# 6. Budujemy frontend
+RUN npm run build
+
+# 7. Użyjemy prostego serwera do statycznych plików
+RUN npm install -g serve
+
+# 8. Port frontend
+EXPOSE 5173
+
+# 9. Komenda startowa
+CMD ["serve", "-s", "dist", "-l", "5173"]
+

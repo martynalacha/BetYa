@@ -2,6 +2,8 @@ import psycopg2
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+import time
+
 load_dotenv()
 
 DATABASE_CONFIG = {
@@ -13,7 +15,15 @@ DATABASE_CONFIG = {
 }
 
 def get_connection():
-    return psycopg2.connect(**DATABASE_CONFIG)
+    # return psycopg2.connect(**DATABASE_CONFIG)
+    for i in range(20):
+        try:
+            conn = psycopg2.connect(**DATABASE_CONFIG)
+            return conn
+        except psycopg2.OperationalError:
+            print(f"Baza danych nie gotowa, próba {i+1}/20. Czekam 2 sekundy...")
+            time.sleep(2)
+        raise Exception("Nie udało się połączyć z bazą danych po 20 próbach")
 
 # Dependency dla FastAPI
 def get_db():

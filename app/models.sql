@@ -772,3 +772,157 @@ FROM (
 RETURN COALESCE(v_wynik, '[]'::json);
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- =========================================================
+-- ======================= SEED ============================
+-- =========================================================
+DO $$
+BEGIN
+    -- JEŚLI BAZA NIE JEST PUSTA → NIC NIE RÓB
+    IF EXISTS (SELECT 1 FROM uzytkownicy) THEN
+        RAISE NOTICE 'Seed pominięty – baza nie jest pusta';
+        RETURN;
+END IF;
+
+    RAISE NOTICE 'Seed start – baza pusta';
+
+    -- ================== UŻYTKOWNICY ==================
+INSERT INTO uzytkownicy (nazwa_uzytkownika, email, hashed_haslo, rola)
+VALUES
+    ('admin', 'admin@betya.pl', '$2b$12$kHtd5NKwoRt/GxRj3xP4v.owxWGd/PzauU9d21XY7XE.VxHG9Y6ru', 'admin'),
+    ('ala',   'ala@betya.pl',   '$2b$12$Z3IY/FCzgIAghvlqqtfvYOeiFuAv57wpirdNChSeKOKUHH7wEox6q',   'user'),
+    ('ola',   'ola@betya.pl',   '$2b$12$UDypK9VnpJ46wbdFmYyvZu/jjc3hwp7hsCeRFKGKxjfa0IB/DbJeK',   'user'),
+    ('tom',   'tom@betya.pl',   '$2b$12$.5Us4.O3mWC09iLzQXlZbuZoRyry08HYCp2Gs5SKxcmjODzS/Wj0O',   'user');
+
+-- ================== ZNAJOMI ==================
+-- ala ↔ ola, tom
+INSERT INTO znajomi (uzytkownik_id, znajomy_id, status, sa_znajomymi)
+SELECT u1.id, u2.id, 'zaakceptowany', TRUE
+FROM uzytkownicy u1
+         JOIN uzytkownicy u2 ON u2.nazwa_uzytkownika IN ('ola', 'tom')
+WHERE u1.nazwa_uzytkownika = 'ala';
+
+-- ola ↔ tom
+INSERT INTO znajomi (uzytkownik_id, znajomy_id, status, sa_znajomymi)
+SELECT u1.id, u2.id, 'zaakceptowany', TRUE
+FROM uzytkownicy u1
+         JOIN uzytkownicy u2 ON u2.nazwa_uzytkownika = 'tom'
+WHERE u1.nazwa_uzytkownika = 'ola';
+
+-- ================== WYZWANIE 1 ==================
+INSERT INTO wyzwania (nazwa, opis, czasowe, autor_id)
+VALUES (
+           'test do usuniecia',
+           'Testowe wyzwanie',
+           FALSE,
+           (SELECT id FROM uzytkownicy WHERE nazwa_uzytkownika = 'ola')
+       );
+
+-- uczestnicy (tylko ala akceptuje)
+INSERT INTO uczestnicy_wyzwan (wyzwanie_id, uzytkownik_id, zaakceptowane)
+SELECT w.id, u.id, (u.nazwa_uzytkownika = 'ala')
+FROM wyzwania w
+         JOIN uzytkownicy u ON u.nazwa_uzytkownika IN ('ala', 'tom')
+WHERE w.nazwa = 'test do usuniecia';
+
+-- zadanie dzienne
+INSERT INTO zadania_dzienne (wyzwanie_id, nazwa)
+SELECT id, 'test zadanie dzienne'
+FROM wyzwania
+WHERE nazwa = 'test do usuniecia';
+
+-- ================== WYZWANIE 2 ==================
+INSERT INTO wyzwania (nazwa, opis, czasowe, data_start, data_koniec, autor_id)
+VALUES (
+           'Przykładowe wyzwanie',
+           'Zdrowe nawyki',
+           TRUE,
+           NOW() - INTERVAL '1 day',
+           NOW() + INTERVAL '2 months',
+           (SELECT id FROM uzytkownicy WHERE nazwa_uzytkownika = 'ola')
+       );
+
+-- uczestnicy (tylko ala akceptuje)
+INSERT INTO uczestnicy_wyzwan (wyzwanie_id, uzytkownik_id, zaakceptowane)
+SELECT w.id, u.id, (u.nazwa_uzytkownika = 'ala')
+FROM wyzwania w
+         JOIN uzytkownicy u ON u.nazwa_uzytkownika IN ('ala', 'tom')
+WHERE w.nazwa = 'Przykładowe wyzwanie';
+
+-- ================== ZADANIA ==================
+INSERT INTO zadania_dzienne (wyzwanie_id, nazwa)
+SELECT id, '8h snu'
+FROM wyzwania
+WHERE nazwa = 'Przykładowe wyzwanie';
+
+INSERT INTO zadania_dzienne (wyzwanie_id, nazwa)
+SELECT id, 'wypicie 1.5l wody'
+FROM wyzwania WHERE nazwa = 'Przykładowe wyzwanie';
+
+-- ================== PODZADANIA ==================
+INSERT INTO podzadania (zadanie_id, nazwa, waga)
+SELECT id, 'szklanka 0.5l', 1
+FROM zadania_dzienne
+WHERE nazwa = 'wypicie 1.5l wody';
+INSERT INTO podzadania (zadanie_id, nazwa, waga)
+SELECT id, 'szklanka 0.5l', 1
+FROM zadania_dzienne
+WHERE nazwa = 'wypicie 1.5l wody';
+INSERT INTO podzadania (zadanie_id, nazwa, waga)
+SELECT id, 'szklanka 0.5l', 1
+FROM zadania_dzienne
+WHERE nazwa = 'wypicie 1.5l wody';
+--
+-- ================== WCZORAJ – OLA ==================
+-- 8h snu
+INSERT INTO progres_dzienne (uczestnik_id, zadanie_id, data, wykonane, wartosc)
+SELECT uw.id, z.id, CURRENT_DATE - 1, TRUE, 1
+FROM uczestnicy_wyzwan uw
+         JOIN uzytkownicy u ON u.id = uw.uzytkownik_id
+         JOIN zadania_dzienne z ON z.wyzwanie_id = uw.wyzwanie_id
+         JOIN wyzwania w ON w.id = uw.wyzwanie_id
+WHERE u.nazwa_uzytkownika = 'ola'
+  AND w.nazwa = 'Przykładowe wyzwanie'
+  AND z.nazwa = '8h snu';
+
+-- woda 1.5l (Ola)
+INSERT INTO progres_dzienne (uczestnik_id, zadanie_id, data, wykonane, wartosc)
+SELECT uw.id, z.id, CURRENT_DATE - 1, TRUE, SUM(p.waga)
+FROM uczestnicy_wyzwan uw
+         JOIN uzytkownicy u ON u.id = uw.uzytkownik_id
+         JOIN zadania_dzienne z ON z.wyzwanie_id = uw.wyzwanie_id
+         JOIN wyzwania w ON w.id = uw.wyzwanie_id
+         JOIN podzadania p ON p.zadanie_id = z.id
+WHERE u.nazwa_uzytkownika = 'ola'
+  AND w.nazwa = 'Przykładowe wyzwanie'
+  AND z.nazwa = 'wypicie 1.5l wody'
+GROUP BY uw.id, z.id;
+
+-- wszystkie podzadania wykonane
+INSERT INTO progres_podzadania (uczestnik_id, podzadanie_id, data, wykonane)
+SELECT uw.id, p.id, CURRENT_DATE - 1, TRUE
+FROM uczestnicy_wyzwan uw
+         JOIN uzytkownicy u ON u.id = uw.uzytkownik_id
+         JOIN wyzwania w ON w.id = uw.wyzwanie_id
+         JOIN zadania_dzienne z ON z.wyzwanie_id = w.id
+         JOIN podzadania p ON p.zadanie_id = z.id
+WHERE u.nazwa_uzytkownika = 'ola'
+  AND w.nazwa = 'Przykładowe wyzwanie'
+  AND z.nazwa = 'wypicie 1.5l wody';
+
+-- ================== DZISIAJ – ALA ==================
+-- 8h snu
+INSERT INTO progres_dzienne (uczestnik_id, zadanie_id, data, wykonane, wartosc)
+SELECT uw.id, z.id, CURRENT_DATE, TRUE, 1
+FROM uczestnicy_wyzwan uw
+         JOIN uzytkownicy u ON u.id = uw.uzytkownik_id
+         JOIN zadania_dzienne z ON z.wyzwanie_id = uw.wyzwanie_id
+         JOIN wyzwania w ON w.id = uw.wyzwanie_id
+WHERE u.nazwa_uzytkownika = 'ala'
+  AND w.nazwa = 'Przykładowe wyzwanie'
+  AND z.nazwa = '8h snu';
+
+
+RAISE NOTICE 'Seed zakończony poprawnie';
+END $$;

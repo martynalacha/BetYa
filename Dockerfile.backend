@@ -1,0 +1,23 @@
+# 1. Bazowy obraz Pythona
+FROM python:3.12-slim
+
+# 2. Ustawiamy katalog roboczy w kontenerze
+WORKDIR /app
+
+# 3. Kopiujemy plik z zależnościami do kontenera
+COPY requirements.txt .
+
+# 4. Instalujemy zależności
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 5. Kopiujemy cały kod backendu
+COPY app/ ./app
+
+# 6. Ustawiamy port, na którym działa FastAPI
+EXPOSE 8000
+
+COPY wait-for-it.sh /wait-for-it.sh
+RUN chmod +x /wait-for-it.sh
+
+# 7. Komenda startowa
+CMD ["/wait-for-it.sh", "db:5432", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
