@@ -23,7 +23,7 @@ def get_connection():
         except psycopg2.OperationalError:
             print(f"Baza danych nie gotowa, próba {i+1}/20. Czekam 2 sekundy...")
             time.sleep(2)
-        raise Exception("Nie udało się połączyć z bazą danych po 20 próbach")
+    raise Exception("Nie udało się połączyć z bazą danych po 20 próbach")
 
 # Dependency dla FastAPI
 def get_db():

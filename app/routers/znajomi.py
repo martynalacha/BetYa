@@ -45,6 +45,65 @@ def znajomi(user_id: int = Depends(get_current_user_id), conn=Depends(get_db)):
             )
     return wynik
 
+@router.get("/uzytkownicy", response_model=schemas.WszyscyUzytkownicy)
+def wszyscy_uzytkownicy(user_id: int = Depends(get_current_user_id), conn=Depends(get_db)):
+
+    wynik = []
+    with conn.cursor() as cur:
+        cur.execute("SELECT rola FROM uzytkownicy WHERE id = %s", (user_id,))
+        row = cur.fetchone()
+
+        # Jeśli użytkownik nie istnieje LUB nie jest adminem -> zwracamy JSON (status 200 OK), a nie błąd 403
+        if not row or row[0] != 'admin':
+            return {
+                "status": "error",
+                "uzytkownicy": None
+            }
+        print("SUKCES: Użytkownik jest adminem, pobieram listę...")
+        cur.execute("""select id, nazwa_uzytkownika, email, profilowe_url from uzytkownicy""")
+        dane = cur.fetchall()
+        for uid, nazwa, email, profilowe_url  in dane:
+            wynik.append(
+                ZnajomyOut(
+                    id=uid,
+                    nazwa_uzytkownika=nazwa,
+                    email=email,
+                    profilowe_url=profilowe_url
+                )
+            )
+    print(f"Wysłano {len(wynik)} użytkowników.")
+    print(f"--- DEBUG KONIEC ---")
+    return {
+        "status": "success",
+        "uzytkownicy": wynik
+    }
+
+@router.delete("/uzytkownicy/{delete_id}")
+def usun_uzytkownika(
+        delete_id: int,
+        user_id: int = Depends(get_current_user_id),
+        conn=Depends(get_db)
+):
+    with conn.cursor() as cur:
+        # Sprawdzanie uprawnień (zostawiamy w kodzie dla bezpieczeństwa)
+        cur.execute("SELECT rola FROM uzytkownicy WHERE id = %s", (user_id,))
+        admin_row = cur.fetchone()
+
+        if not admin_row or admin_row[0] != 'admin':
+            raise HTTPException(status_code=403, detail="Tylko admin może usuwać użytkowników")
+
+        if delete_id == user_id:
+            raise HTTPException(status_code=400, detail="Nie możesz usunąć własnego konta")
+
+        try:
+            # Wywołanie funkcji z bazy danych
+            cur.execute("SELECT usun_uzytkownika_kaskadowo(%s)", (delete_id,))
+            conn.commit()
+            return {"status": "success", "message": "Użytkownik i jego dane usunięte z poziomu bazy"}
+        except Exception as e:
+            conn.rollback()
+            print(f"Błąd bazy: {e}")
+            raise HTTPException(status_code=500, detail="Błąd podczas wykonywania procedury usuwania")
 
 @router.get("/pending/wyslane", response_model=List[schemas.PendingZaproszenieOut])
 def pending_wyslane(user_id: int = Depends(get_current_user_id), conn=Depends(get_db)):

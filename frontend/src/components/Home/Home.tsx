@@ -1,9 +1,10 @@
-import { useState, type ChangeEvent, useEffect } from "react";
+import { useState, type ChangeEvent, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import "./Home.css";
 import Logo from "../Logo/Logo";
 import AddWyzwanie from "./AddWyzwanie.tsx"
 import WyzwanieComponent  from "./Wyzwanie.tsx"
+import Uzytkownicy from "./Uzytkownicy.tsx";
 
 interface Znajomy {
     id: number;
@@ -98,8 +99,9 @@ export default function Home() {
     const [showForm, setShowForm] = useState(false)
     const [selectedWyzwanie, setSelectedWyzwanie] = useState<Wyzwanie | null>(null);
     const [statystyki, setStatystyki] = useState<Statystyki>({ liczba_znajomych: 0, liczba_oczekujacych_zaproszen: 0 });
-
+    const [showAllUsers, setShowAllUsers] = useState(false);
     const navigate = useNavigate();
+
 
     // === Funkcja do pobrania aktualnych statystyk ===
     const updateStatystyki = async () => {
@@ -120,67 +122,79 @@ export default function Home() {
         }
     };
 
-    // === Pobieranie danych znajomych ===
-    useEffect(() => {
-        const fetchHomeData = async () => {
-            try {
-                const token = localStorage.getItem("token");
-                if (!token) {
-                    navigate("/logowanie");
-                    return;
-                }
-                const headers: HeadersInit = { Authorization: `Bearer ${token}` };
+    const fetchHomeData = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                navigate("/logowanie");
+                return;
+            }
+            const headers: HeadersInit = { Authorization: `Bearer ${token}` };
 
-                // Pobierz wszystkich znajomych
-                const [
-                    znajomiRes,
-                    wyslaneRes,
-                    odebraneRes,
-                    wyzwaniaRes,
-                    wyzwaniaZapOdebraneRes,
-                    wyzwaniaZapWyslaneRes,
-                ] = await Promise.all([
-                    fetch("http://127.0.0.1:8000/znajomi/wszyscy", { headers }),
-                    fetch("http://127.0.0.1:8000/znajomi/pending/wyslane", { headers }),
-                    fetch("http://127.0.0.1:8000/znajomi/pending/odebrane", { headers }),
-                    fetch("http://127.0.0.1:8000/wyzwania/", { headers }),
-                    fetch("http://127.0.0.1:8000/wyzwania/zaproszenia/odebrane", { headers }),
-                    fetch("http://127.0.0.1:8000/wyzwania/zaproszenia/wyslane", { headers }),
+            // Pobierz wszystkich znajomych
+            const [
+                znajomiRes,
+                wyslaneRes,
+                odebraneRes,
+                wyzwaniaRes,
+                wyzwaniaZapOdebraneRes,
+                wyzwaniaZapWyslaneRes,
+            ] = await Promise.all([
+                fetch("http://127.0.0.1:8000/znajomi/wszyscy", { headers }),
+                fetch("http://127.0.0.1:8000/znajomi/pending/wyslane", { headers }),
+                fetch("http://127.0.0.1:8000/znajomi/pending/odebrane", { headers }),
+                fetch("http://127.0.0.1:8000/wyzwania/", { headers }),
+                fetch("http://127.0.0.1:8000/wyzwania/zaproszenia/odebrane", { headers }),
+                fetch("http://127.0.0.1:8000/wyzwania/zaproszenia/wyslane", { headers }),
+            ]);
+
+            if ([znajomiRes, wyslaneRes, odebraneRes, wyzwaniaRes, wyzwaniaZapOdebraneRes, wyzwaniaZapWyslaneRes].some(r => r.status === 403)) {
+                alert("Twoja sesja wygasła. Zaloguj się ponownie.");
+                localStorage.removeItem("token");
+                navigate("/logowanie");
+                return;
+            }
+
+            const [znajomi, pending_wyslane, pending_odebrane, wyzwania, wyzwania_zaproszenia_odebrane, wyzwania_zaproszenia_wyslane] =
+                await Promise.all([
+                    znajomiRes.json(),
+                    wyslaneRes.json(),
+                    odebraneRes.json(),
+                    wyzwaniaRes.json(),
+                    wyzwaniaZapOdebraneRes.json(),
+                    wyzwaniaZapWyslaneRes.json(),
                 ]);
 
-                if ([znajomiRes, wyslaneRes, odebraneRes, wyzwaniaRes, wyzwaniaZapOdebraneRes, wyzwaniaZapWyslaneRes].some(r => r.status === 403)) {
-                    alert("Twoja sesja wygasła. Zaloguj się ponownie.");
-                    localStorage.removeItem("token");
-                    navigate("/logowanie");
-                    return;
-                }
+            setHomeData({
+                znajomi: Array.isArray(znajomi) ? znajomi : [],
+                pending_wyslane: Array.isArray(pending_wyslane) ? pending_wyslane : [],
+                pending_odebrane: Array.isArray(pending_odebrane) ? pending_odebrane : [],
+                wyzwania: wyzwania?.data || [],
+                wyzwania_zaproszenia_odebrane: wyzwania_zaproszenia_odebrane?.data || [],
+                wyzwania_zaproszenia_wyslane: wyzwania_zaproszenia_wyslane?.data || [],
+            });
+            await updateStatystyki();
 
-                const [znajomi, pending_wyslane, pending_odebrane, wyzwania, wyzwania_zaproszenia_odebrane, wyzwania_zaproszenia_wyslane] =
-                    await Promise.all([
-                        znajomiRes.json(),
-                        wyslaneRes.json(),
-                        odebraneRes.json(),
-                        wyzwaniaRes.json(),
-                        wyzwaniaZapOdebraneRes.json(),
-                        wyzwaniaZapWyslaneRes.json(),
-                    ]);
+        } catch (err) {
+            console.error("Błąd fetch:", err);
+        }
+    };
 
-                setHomeData({
-                    znajomi: Array.isArray(znajomi) ? znajomi : [],
-                    pending_wyslane: Array.isArray(pending_wyslane) ? pending_wyslane : [],
-                    pending_odebrane: Array.isArray(pending_odebrane) ? pending_odebrane : [],
-                    wyzwania: wyzwania?.data || [],
-                    wyzwania_zaproszenia_odebrane: wyzwania_zaproszenia_odebrane?.data || [],
-                    wyzwania_zaproszenia_wyslane: wyzwania_zaproszenia_wyslane?.data || [],
-                });
-                await updateStatystyki();
+    // === Pobieranie danych znajomych ===
+    useEffect(() => {
 
-            } catch (err) {
-                console.error("Błąd fetch:", err);
-            }
-        };
         fetchHomeData().catch(err => console.error(err));
     }, [navigate]);
+
+    // === Rola użytkownika ===
+    const userRole = useMemo(() => {
+        const token = localStorage.getItem("token");
+        if (!token) return null;
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const payload = JSON.parse(window.atob(base64));
+        return payload.rola || null;
+    }, []);
 
     // === Wyszukiwanie znajomych ===
     const handleInputChange = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -252,7 +266,7 @@ export default function Home() {
                 }]
             }));
 
-            alert(`Zaproszenie wysłane do ${name}`);
+
             setSearchQuery("");
             setSuggestions([]);
         } catch (err) {
@@ -298,7 +312,7 @@ export default function Home() {
             });
             updateStatystyki().catch(err => console.error(err));
 
-            alert(action === "akceptuj" ? "Zaproszenie zaakceptowane!" : "Zaproszenie odrzucone!");
+
         } catch (err) {
             console.error(err);
             alert("Błąd wykonania akcji");
@@ -349,7 +363,7 @@ export default function Home() {
             }));
 
 
-            alert("Zaproszenie zaakceptowane!");
+
         } catch (err) {
             console.error(err);
             alert("Błąd akceptacji wyzwania");
@@ -381,7 +395,7 @@ export default function Home() {
                 )
             }));
 
-            alert("Zaproszenie odrzucone!");
+
         } catch (err) {
             console.error(err);
             alert("Błąd odrzucenia wyzwania");
@@ -539,16 +553,26 @@ export default function Home() {
                             <WyzwanieComponent
                                 wyzwanie={selectedWyzwanie}
                                 onClose={() => setSelectedWyzwanie(null)}
+                                onRefresh={fetchHomeData}
                             />
                         </div>
                     </div>
                 )}
+
 
             </div>
 
             <div className="right-panel">
                 <h3>✨Znajomi</h3>
 
+                {userRole === 'admin' && (
+                    <button
+                        className="add-wyzwanie-btn"
+                        onClick={() => setShowAllUsers(true)}
+                    >
+                        👥 Zarządzaj użytkownikami
+                    </button>
+                )}
                 <div className="friends-section search-friends">
                     <h4>Dodaj nowych znajomych</h4>
                     <input
@@ -636,6 +660,12 @@ export default function Home() {
                     )}
                 </div>
             </div>
+            {showAllUsers && (
+                <Uzytkownicy
+                    onClose={() => setShowAllUsers(false)}
+                    onUserDeleted={fetchHomeData} // Przekazujemy funkcję odświeżającą kafelki
+                />
+            )}
         </div>
     );
 }

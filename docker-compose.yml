@@ -25,6 +25,9 @@ services:
       dockerfile: Dockerfile.backend
     ports:
       - "8000:8000"
+    volumes:
+      - ./app:/app/app
+      - ./wait-for-it.sh:/app/wait-for-it.sh
     depends_on:
       - db
     environment:
@@ -40,6 +43,9 @@ services:
       dockerfile: Dockerfile.frontend
     ports:
       - "5173:5173"
+    volumes:
+      - ./frontend:/frontend
+      - /frontend/node_modules
     depends_on:
       - backend
 

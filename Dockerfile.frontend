@@ -14,14 +14,16 @@ RUN npm install
 COPY frontend/ .
 
 # 6. Budujemy frontend
-RUN npm run build
+#RUN npm run build
 
 # 7. Użyjemy prostego serwera do statycznych plików
-RUN npm install -g serve
+#RUN npm install -g serve
 
 # 8. Port frontend
-EXPOSE 5173
+#EXPOSE 5173
 
 # 9. Komenda startowa
-CMD ["serve", "-s", "dist", "-l", "5173"]
+#CMD ["serve", "-s", "dist", "-l", "5173"]
 
+EXPOSE 5173
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

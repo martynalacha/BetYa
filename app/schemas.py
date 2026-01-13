@@ -53,6 +53,9 @@ class StatystykiZnajomychOut(BaseModel):
     liczba_znajomych: int
     liczba_oczekujacych_zaproszen: int
 
+class WszyscyUzytkownicy(BaseModel):
+    status: str
+    uzytkownicy: Optional[List[UzytkownikOut]] = None
 # -------------------- Wyzwania --------------------
 
 class PodzadanieCreate(BaseModel):

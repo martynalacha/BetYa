@@ -88,7 +88,8 @@ SELECT
     id,
     nazwa_uzytkownika,
     email,
-    hashed_haslo
+    hashed_haslo,
+    rola
 FROM uzytkownicy;
 
 -- Funkcja, którą uruchomi wyzwalacz
@@ -203,6 +204,7 @@ SELECT u.id, u.nazwa_uzytkownika, u.email
 FROM uzytkownicy u
 WHERE u.nazwa_uzytkownika ILIKE '%' || p_szukana_fraza || '%'
       AND u.id != p_moje_id
+      AND u.rola != 'admin'
       AND NOT EXISTS (
           SELECT 1 FROM znajomi z
           WHERE (z.uzytkownik_id = p_moje_id AND z.znajomy_id = u.id)
@@ -926,3 +928,33 @@ WHERE u.nazwa_uzytkownika = 'ala'
 
 RAISE NOTICE 'Seed zakończony poprawnie';
 END $$;
+
+
+CREATE OR REPLACE FUNCTION usun_uzytkownika_kaskadowo(target_user_id INT)
+RETURNS VOID AS $$
+DECLARE
+v_wyzwanie_id INT;
+BEGIN
+    -- KROK 1: Usuwamy wszystko, czego użytkownik był AUTOREM
+    -- (bo to są jego "własne" dane, które blokują inne tabele)
+FOR v_wyzwanie_id IN (SELECT id FROM wyzwania WHERE autor_id = target_user_id) LOOP
+        PERFORM usun_wyzwanie_admin(v_wyzwanie_id);
+END LOOP;
+
+
+DELETE FROM progres_podzadania
+WHERE uczestnik_id IN (SELECT id FROM uczestnicy_wyzwan WHERE uzytkownik_id = target_user_id);
+
+DELETE FROM progres_dzienne
+WHERE uczestnik_id IN (SELECT id FROM uczestnicy_wyzwan WHERE uzytkownik_id = target_user_id);
+
+-- Potem samo członkostwo w cudzych wyzwaniach
+DELETE FROM uczestnicy_wyzwan WHERE uzytkownik_id = target_user_id;
+
+-- KROK 3: Usuwamy relacje towarzyskie (znajomych)
+DELETE FROM znajomi WHERE uzytkownik_id = target_user_id OR znajomy_id = target_user_id;
+
+-- KROK 4: Na samym końcu usuwamy profil z tabeli głównej
+DELETE FROM uzytkownicy WHERE id = target_user_id;
+END;
+$$ LANGUAGE plpgsql;

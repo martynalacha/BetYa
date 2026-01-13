@@ -339,5 +339,84 @@ body.dark .wyzwanie-opis {
     color: #ddd;
     background-color: rgba(255, 255, 255, 0.05);
 }
+/* Nakładka potwierdzenia wewnątrz wyzwania */
+.confirm-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85); /* Ciemniejsze tło dla skupienia */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+    z-index: 1000;
+    backdrop-filter: blur(5px); /* Efekt rozmycia spodu */
+    animation: fadeIn 0.2s ease-out;
+}
 
+.confirm-box {
+    background: #1a1a1a;
+    padding: 2rem;
+    border-radius: 15px;
+    text-align: center;
+    border: 1px solid #333;
+    max-width: 350px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
 
+.confirm-box h4 {
+    color: #ff9900; /* Twój pomarańczowy */
+    margin-top: 0;
+    font-size: 1.4rem;
+}
+
+.confirm-warning {
+    color: #ff4d4d;
+    font-size: 0.85rem;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.cancel-btn {
+    background: #333;
+    color: #eee;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.cancel-btn:hover {
+    background: #444;
+}
+
+.confirm-delete-btn {
+    background: #e63946;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: transform 0.2s, background 0.2s;
+}
+
+.confirm-delete-btn:hover {
+    background: #c1121f;
+    transform: scale(1.05);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}

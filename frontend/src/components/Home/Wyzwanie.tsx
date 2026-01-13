@@ -52,6 +52,7 @@ interface Wyzwanie {
 interface Props {
     wyzwanie: Wyzwanie;
     onClose: () => void;
+    onRefresh?: () => void;
 }
 
 
@@ -138,31 +139,46 @@ const getLocalToday = () => {
         + String(d.getDate()).padStart(2, '0');
 };
 
-const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose }) => {
-    const currentUserId = useMemo(() => {
+const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
+    const {currentUserId, userRole} = useMemo(() => {
         const token = localStorage.getItem("token");
 
-        console.group("🕵️‍♂️ DEBUGOWANIE AUTH");
-        console.log("1. Raw Token:", token);
-
         if (!token) {
-            console.warn("❌ Brak tokena w localStorage!");
-            console.groupEnd();
-            return 0;
+            return { currentUserId: 0, userRole: null };
         }
 
         const decoded = parseJwt(token);
-        console.log("2. Zdekodowany obiekt (Payload):", decoded);
 
-        // --- TUTAJ JEST NAPRAWA ---
-        // Dodaliśmy decoded?.uzytkownik_id na samym początku
         const extractedId = decoded?.uzytkownik_id || decoded?.user_id || decoded?.sub || decoded?.id || 0;
+        const role = decoded?.rola || null;
 
-        console.log("3. Wyciągnięte ID:", extractedId); // Teraz tutaj powinno pokazać 1
-        console.groupEnd();
-
-        return extractedId;
+        return { currentUserId: extractedId, userRole: role };
     }, []);
+
+    const confirmDeleteWyzwanie = async () => {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        try {
+            const res = await fetch(`http://127.0.0.1:8000/wyzwania/${wyzwanie.id}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            const json = await res.json();
+
+            if (json.status === "success") {
+                setShowDeleteConfirm(false);
+                onClose(); // Zamyka cały popup wyzwania
+                if (onRefresh) onRefresh(); // Odświeża kafelki w Home.tsx
+            } else {
+                alert(json.message || "Błąd usuwania");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Wystąpił błąd podczas usuwania.");
+        }
+    };
 
     const uczestnicyAktywni = useMemo(
         () => (wyzwanie.uczestnicy ?? []).filter(u => u.zaakceptowane),
@@ -170,25 +186,26 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose }) => {
     );
 
     const canEdit = useMemo(() => {
-        const myId = Number(currentUserId);
+        // 1. Sprawdzamy czy użytkownik jest adminem
+        // na razie nie potrzebne
+        // 2. Zachowujemy dotychczasową logikę (autor lub uczestnik)
+        const isAuthor = Number(wyzwanie.autor_id) === Number(currentUserId);
+        const isParticipant = uczestnicyAktywni.some(u => u.id === Number(currentUserId));
 
-        // Sprawdzamy czy jestem autorem
-        const isAuthor = wyzwanie.autor_id === myId;
-
-        // Sprawdzamy czy jestem na liście uczestników
-        const isParticipant = uczestnicyAktywni.some(u => u.id === myId);
-
-        console.log("🔥 UPRAWNIENIA:", { myId, isAuthor, isParticipant });
-
+        // Zwracamy true, jeśli jest adminem LUB autorem/uczestnikiem
         return isAuthor || isParticipant;
-    }, [currentUserId, wyzwanie.autor_id, uczestnicyAktywni]);
+    }, [currentUserId, userRole, wyzwanie.autor_id, uczestnicyAktywni]);
 
+    const isAdmin = useMemo(() => {
+        // Zwraca true jeśli admin, w przeciwnym razie false
+        return userRole === 'admin';
+    }, [userRole]);
 
     const [progresPodzadania, setProgresPodzadania] = useState<Record<number, boolean>>({});
     const [progresZadania, setProgresZadania] = useState<Record<number, boolean>>({});
     const [wykresData, setWykresData] = useState<Record<number, any[]>>({});
     const [uczestnikColors, setUczestnikColors] = useState<Record<number, string>>({});
-
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     // Generowanie kolorów
     useEffect(() => {
         const colors: Record<number, string> = {};
@@ -213,38 +230,39 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose }) => {
         return Math.round((sumaWykonane / sumaWagi) * 100);
     };
 
-    const handleDelete = async () => {
-        if (!window.confirm("Czy na pewno chcesz usunąć to wyzwanie? Ta operacja jest nieodwracalna.")) {
-            return;
-        }
-
-        const token = localStorage.getItem("token");
-        if (!token) return;
-
-        try {
-            // Zwróć uwagę na endpoint - dopasuj URL do swojego API
-            const res = await fetch(`http://127.0.0.1:8000/wyzwania/${wyzwanie.id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            const json = await res.json();
-
-            if (json.status === "success") {
-                alert("Wyzwanie zostało usunięte.");
-                onClose();
-                window.location.reload(); // Odświeżamy stronę, żeby wyzwanie zniknęło z listy
-            } else {
-                // Tutaj wchodzimy, jeśli user NIE jest adminem (zgodnie z Twoim nowym backendem)
-                alert(json.message);
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Wystąpił błąd podczas usuwania.");
-        }
-    };
+    // const handleDelete = async () => {
+    //     if (!window.confirm("Czy na pewno chcesz usunąć to wyzwanie? Ta operacja jest nieodwracalna.")) {
+    //         return;
+    //     }
+    //
+    //     const token = localStorage.getItem("token");
+    //     if (!token) return;
+    //
+    //     try {
+    //         // Zwróć uwagę na endpoint - dopasuj URL do swojego API
+    //         const res = await fetch(`http://127.0.0.1:8000/wyzwania/${wyzwanie.id}`, {
+    //             method: 'DELETE',
+    //             headers: {
+    //                 'Authorization': `Bearer ${token}`
+    //             }
+    //         });
+    //
+    //         const json = await res.json();
+    //
+    //         if (json.status === "success") {
+    //             setShowDeleteConfirm(false)
+    //             onClose();
+    //             if (onRefresh) {
+    //                 onRefresh();
+    //             }
+    //         } else {
+    //             alert(json.message);
+    //         }
+    //     } catch (e) {
+    //         console.error(e);
+    //         alert("Wystąpił błąd podczas usuwania.");
+    //     }
+    //};
 
     // Fetch danych
     useEffect(() => {
@@ -658,13 +676,28 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose }) => {
                         Zamknij
                     </button>
 
-                    <button className="delete-btn" onClick={handleDelete}>
-                        🗑️ Usuń wyzwanie
-                    </button>
+                    {isAdmin && (
+                        <button className="delete-btn" onClick={() => setShowDeleteConfirm(true)}>
+                            🗑️ Usuń wyzwanie
+                        </button>
+                    )}
 
 
                 </div>
             </div>
+            {showDeleteConfirm && (
+                <div className="confirm-overlay">
+                    <div className="confirm-box">
+                        <h4>Potwierdź usunięcie</h4>
+                        <p>Czy na pewno chcesz usunąć wyzwanie <strong>{wyzwanie.nazwa}</strong>?</p>
+                        <p className="confirm-warning">Wszyscy uczestnicy stracą swoje postępy!</p>
+                        <div className="confirm-actions">
+                            <button className="cancel-btn" onClick={() => setShowDeleteConfirm(false)}>Anuluj</button>
+                            <button className="confirm-delete-btn" onClick={confirmDeleteWyzwanie}>Tak, usuń</button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

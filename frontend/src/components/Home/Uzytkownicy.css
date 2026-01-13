@@ -1,0 +1,204 @@
+/* Główne okno modala */
+.users-admin-modal {
+    position: relative; /* Dla przycisku X w rogu */
+    width: 100%;
+    max-width: 550px;
+    padding: 2rem !important;
+    background: #1a1a1a !important; /* Ciemny, elegancki tło */
+    border: 1px solid rgba(255, 153, 0, 0.2);
+    box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+}
+
+/* Przycisk X w prawym górnym rogu */
+.close-corner-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 15px;
+    cursor: pointer;
+    transition: color 0.2s;
+    line-height: 1;
+}
+
+.close-corner-btn:hover {
+    color: #ff9900;
+}
+
+.popup-header-minimal {
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding-bottom: 1rem;
+}
+
+.popup-header-minimal h3 {
+    margin: 0;
+    color: #ff9900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.popup-header-minimal p {
+    margin: 5px 0 0;
+    font-size: 0.85rem;
+    color: #888;
+}
+
+/* Kontener listy */
+.users-list-scrollable {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 50vh;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+/* Karta użytkownika */
+.admin-user-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 1rem;
+    transition: all 0.3s ease;
+}
+
+.admin-user-card:hover {
+    background: rgba(255, 153, 0, 0.05);
+    border-color: rgba(255, 153, 0, 0.3);
+}
+
+/* Dane użytkownika */
+.user-details-box {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.user-primary-info, .user-secondary-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: #bdbaba;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+
+.user-value-name {
+    font-weight: 600;
+    color: #eee;
+    font-size: 1rem;
+}
+
+.user-value-email {
+    color: #ff9900;
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+/* Przycisk usuń */
+.minimal-delete-btn {
+    background: rgba(230, 57, 70, 0.1);
+    color: #e63946;
+    border: 1px solid rgba(230, 57, 70, 0.2);
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.minimal-delete-btn:hover {
+    background: #e63946;
+    color: white;
+    transform: translateY(-2px);
+}
+
+.self-label-btn {
+    display: inline-block; /* Żeby trzymał wymiary */
+    background: rgba(76, 175, 80, 0.1); /* Zielone tło (przezroczyste) */
+    color: #4caf50; /* Zielony tekst */
+    border: 1px solid rgba(76, 175, 80, 0.2); /* Zielona ramka */
+    padding: 8px 16px; /* Identyczny padding co w przycisku */
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-align: center;
+    min-width: 60px; /* Zapewnia podobną szerokość */
+}
+
+/* Overlay dla potwierdzenia wewnątrz popupu */
+.confirm-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 12px;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+}
+
+.confirm-box {
+    background: #222;
+    padding: 1.5rem;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid #444;
+    max-width: 80%;
+}
+
+.confirm-box h4 {
+    color: #ff9900;
+    margin-bottom: 10px;
+}
+
+.confirm-warning {
+    color: #e63946;
+    font-size: 0.75rem;
+    margin-top: 5px;
+}
+
+.confirm-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.cancel-btn {
+    background: #444;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.confirm-delete-btn {
+    background: #e63946;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.confirm-delete-btn:hover {
+    background: #c1121f;
+}
