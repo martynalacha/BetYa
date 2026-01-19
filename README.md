@@ -13,7 +13,7 @@ w ramach wspólnych celów.
 
 ---
 
-## ⚙ Konfiguracja zmiennych środowiskowych
+##  Konfiguracja zmiennych środowiskowych
 
 Projekt wykorzystuje Dockera, jednak do poprawnego działania wymaga pliku .env
 z konfiguracją połączenia do bazy danych.
@@ -26,7 +26,7 @@ z konfiguracją połączenia do bazy danych.
 
 ---
 
-## ▶Uruchomienie aplikacji (Docker Compose)
+##  Uruchomienie aplikacji (Docker Compose)
 
 Upewnij się, że Docker Desktop jest uruchomiony, a następnie wykonaj:
 
