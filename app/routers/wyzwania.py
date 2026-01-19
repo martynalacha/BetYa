@@ -26,8 +26,6 @@ def get_wyzwania(user_id: int = Depends(get_current_user_id), conn=Depends(get_d
 
         if user_role == 'admin':
             # LOGIKA ADMINA: Pobierz wszystkie wyzwania z bazy
-            # Nie korzystamy z widoku 'widok_moje_wyzwania', bo on filtruje relacje.
-            # Bierzemy surowe dane z tabeli wyzwania.
             cur.execute("""
                         SELECT DISTINCT id, nazwa, opis, czasowe, data_start, data_koniec, autor_id
                         FROM widok_moje_wyzwania
@@ -525,89 +523,6 @@ def get_progres(podzadanie_id: int, conn=Depends(get_db), user_id: int = Depends
         wykonane=wykonane
     )
 
-
-# @router.get("/progres/dzienne/historia/wszystkie/{zadanie_id}")
-# def get_progres_dzienne_historia_wszystkie(zadanie_id: int, conn=Depends(get_db)):
-#     with conn.cursor() as cur:
-#         # Pobranie wszystkich uczestników
-#         cur.execute("""
-#                     SELECT uw.id, u.nazwa_uzytkownika
-#                     FROM uczestnicy_wyzwan uw
-#                              JOIN uzytkownicy u ON u.id = uw.uzytkownik_id
-#                              JOIN zadania_dzienne zd ON zd.wyzwanie_id = uw.wyzwanie_id
-#                     WHERE zd.id = %s
-#                     """, (zadanie_id,))
-#         uczestnicy = cur.fetchall()  # [(uczestnik_id, nazwa_uzytkownika), ...]
-#
-#         if not uczestnicy:
-#             return {"status": "error", "message": "Brak uczestników dla tego zadania"}
-#
-#         # Pobranie listy podzadań
-#         cur.execute("""
-#                     SELECT id, waga
-#                     FROM podzadania
-#                     WHERE zadanie_id = %s
-#                     """, (zadanie_id,))
-#         podzadania = cur.fetchall()  # [(id, waga), ...]
-#         suma_wag = sum(p[1] for p in podzadania) if podzadania else None
-#
-#         # Lista wszystkich dat do uwzględnienia
-#         cur.execute("""
-#                     SELECT DISTINCT pd.data::date
-#                     FROM progres_dzienne pd
-#                              LEFT JOIN progres_podzadania pp ON pd.uczestnik_id = pp.uczestnik_id
-#                     WHERE pd.zadanie_id = %s
-#                     """, (zadanie_id,))
-#         wszystkie_daty = [r[0] for r in cur.fetchall()]
-#         dzisiaj = date.today()
-#         if dzisiaj not in wszystkie_daty:
-#             wszystkie_daty.append(dzisiaj)
-#         wszystkie_daty.sort()
-#
-#         wynik = []
-#
-#         for uczestnik_id, nazwa in uczestnicy:
-#             punkty = []
-#
-#             for data_entry in wszystkie_daty:
-#                 if podzadania:
-#                     # Pobranie stanu podzadań dla tej daty
-#                     cur.execute("""
-#                                 SELECT podzadanie_id, wykonane
-#                                 FROM progres_podzadania
-#                                 WHERE uczestnik_id = %s AND podzadanie_id IN (
-#                                     SELECT id FROM podzadania WHERE zadanie_id = %s
-#                                 )
-#                                   AND data::date = %s
-#                                 """, (uczestnik_id, zadanie_id, data_entry))
-#                     rows = cur.fetchall()
-#                     wykonane_map = {r[0]: r[1] for r in rows}
-#                     wykonane_wagi = sum(waga for p_id, waga in podzadania if wykonane_map.get(p_id, False))
-#                     procent = round((wykonane_wagi / suma_wag) * 100) if suma_wag else 0
-#                 else:
-#                     # Brak podzadań → progres true/false
-#                     cur.execute("""
-#                                 SELECT wykonane
-#                                 FROM progres_dzienne
-#                                 WHERE uczestnik_id = %s AND zadanie_id = %s AND data::date = %s
-#                                 """, (uczestnik_id, zadanie_id, data_entry))
-#                     row = cur.fetchone()
-#                     procent = 100 if row and row[0] else 0
-#
-#                 punkty.append({"data": data_entry.isoformat(), "procent": procent})
-#
-#             wynik.append({
-#                 "uczestnik_id": uczestnik_id,
-#                 "nazwa_uzytkownika": nazwa,
-#                 "punkty": punkty
-#             })
-#
-#     return {
-#         "status": "success",
-#         "zadanie_id": zadanie_id,
-#         "historia": wynik
-#     }
-
 @router.get("/progres/dzienne/historia/wszystkie/{zadanie_id}")
 def get_progres_dzienne_historia_wszystkie(
         zadanie_id: int,
@@ -636,26 +551,29 @@ def delete_wyzwanie_admin(
         conn=Depends(get_db)
 ):
     with conn.cursor() as cur:
-        # 1. Sprawdzenie uprawnień
-        cur.execute("SELECT rola FROM uzytkownicy WHERE id = %s", (user_id,))
-        row = cur.fetchone()
+        # Wywołujemy funkcję z dwoma parametrami
+        cur.execute("SELECT usun_wyzwanie_admin(%s, %s)", (wyzwanie_id, user_id))
+        result = cur.fetchone()[0]
+        conn.commit()
 
-        # Jeśli użytkownik nie istnieje LUB nie jest adminem -> zwracamy JSON (status 200 OK), a nie błąd 403
-        if not row or row[0] != 'admin':
+        # Mapujemy wynik z bazy na format oczekiwany przez front-end
+        if result == 'error_no_admin':
             return schemas.DeleteWyzwanieResponse(
                 status="error",
                 message="Brak uprawnień. Tylko administrator może usuwać wyzwania.",
                 wyzwanie_id=wyzwanie_id
             )
 
-        # 2. Wywołanie funkcji czyszczącej z bazy (tylko jeśli admin)
-        # Zakładam, że funkcja SQL zwraca coś sensownego lub po prostu działa
-        cur.execute("SELECT usun_wyzwanie_admin(%s)", (wyzwanie_id,))
-        conn.commit()
+        if result == 'error_not_found':
+            return schemas.DeleteWyzwanieResponse(
+                status="error",
+                message="Wyzwanie nie istnieje.",
+                wyzwanie_id=wyzwanie_id
+            )
 
-    # 3. Sukces
-    return schemas.DeleteWyzwanieResponse(
-        status="success",
-        message="Wyzwanie zostało pomyślnie usunięte.",
-        wyzwanie_id=wyzwanie_id
-    )
+        # Jeśli baza zwróciła 'success'
+        return schemas.DeleteWyzwanieResponse(
+            status="success",
+            message="Wyzwanie zostało pomyślnie usunięte.",
+            wyzwanie_id=wyzwanie_id
+        )

@@ -108,7 +108,7 @@ CREATE OR REPLACE TRIGGER trg_nowy_uzytkownik_czyszczenie
     BEFORE INSERT ON uzytkownicy
     FOR EACH ROW EXECUTE FUNCTION wyzwalacz_czyszczenie_danych();
 
--- Funkcja realizująca rejestrację (Wymaganie 6c - Funkcje wbudowane)
+-- Funkcja realizująca rejestrację
 CREATE OR REPLACE FUNCTION zarejestruj_uzytkownika(
     p_nazwa VARCHAR,
     p_email VARCHAR,
@@ -589,37 +589,54 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-   CREATE OR REPLACE FUNCTION usun_wyzwanie_admin(p_wyzwanie_id INT)
-RETURNS VOID AS $$
+CREATE OR REPLACE FUNCTION usun_wyzwanie_admin(p_wyzwanie_id INT, p_wykonawca_id INT)
+RETURNS TEXT AS $$
+DECLARE
+    v_rola_wykonawcy VARCHAR;
 BEGIN
-    -- 1. Usuń progres podzadań (poprzez podzadania -> zadania)
-DELETE FROM progres_podzadania
-WHERE podzadanie_id IN (
-    SELECT p.id FROM podzadania p
-                         JOIN zadania_dzienne z ON p.zadanie_id = z.id
-    WHERE z.wyzwanie_id = p_wyzwanie_id
-);
+    -- Pobierz rolę
+    SELECT rola INTO v_rola_wykonawcy FROM uzytkownicy WHERE id = p_wykonawca_id;
 
--- 2. Usuń progres dzienny
-DELETE FROM progres_dzienne
-WHERE zadanie_id IN (
-    SELECT id FROM zadania_dzienne WHERE wyzwanie_id = p_wyzwanie_id
-);
+    -- Weryfikacja uprawnien
+    IF v_rola_wykonawcy IS NULL OR v_rola_wykonawcy != 'admin' THEN
+        RETURN 'error_no_admin';
+    END IF;
 
--- 3. Usuń podzadania
-DELETE FROM podzadania
-WHERE zadanie_id IN (
-    SELECT id FROM zadania_dzienne WHERE wyzwanie_id = p_wyzwanie_id
-);
+    -- Czy wyzwanie istnieje?
+    IF NOT EXISTS (SELECT 1 FROM wyzwania WHERE id = p_wyzwanie_id) THEN
+        RETURN 'error_not_found';
+    END IF;
 
--- 4. Usuń zadania dzienne
-DELETE FROM zadania_dzienne WHERE wyzwanie_id = p_wyzwanie_id;
+    -- 1. Usuwanie progresu podzadań (poprzez podzadania -> zadania)
+    DELETE FROM progres_podzadania
+    WHERE podzadanie_id IN (
+        SELECT p.id FROM podzadania p
+                             JOIN zadania_dzienne z ON p.zadanie_id = z.id
+        WHERE z.wyzwanie_id = p_wyzwanie_id
+    );
 
--- 5. Usuń uczestników
-DELETE FROM uczestnicy_wyzwan WHERE wyzwanie_id = p_wyzwanie_id;
+    -- 2. Usuwanie progresu dzienny
+    DELETE FROM progres_dzienne
+    WHERE zadanie_id IN (
+        SELECT id FROM zadania_dzienne WHERE wyzwanie_id = p_wyzwanie_id
+    );
 
--- 6. Na końcu usuń samo wyzwanie
-DELETE FROM wyzwania WHERE id = p_wyzwanie_id;
+    -- 3. Usuwanie podzadania
+    DELETE FROM podzadania
+    WHERE zadanie_id IN (
+        SELECT id FROM zadania_dzienne WHERE wyzwanie_id = p_wyzwanie_id
+    );
+
+    -- 4. Usuwanie zadań dzienne
+    DELETE FROM zadania_dzienne WHERE wyzwanie_id = p_wyzwanie_id;
+
+    -- 5. Usuwanie uczestników
+    DELETE FROM uczestnicy_wyzwan WHERE wyzwanie_id = p_wyzwanie_id;
+
+    -- 6. Na końcu Usuwanie samego wyzwania
+    DELETE FROM wyzwania WHERE id = p_wyzwanie_id;
+
+    RETURN 'success';
 END;
 $$ LANGUAGE plpgsql;
 
@@ -933,31 +950,75 @@ RAISE NOTICE 'Seed zakończony poprawnie';
 END $$;
 
 
-CREATE OR REPLACE FUNCTION usun_uzytkownika_kaskadowo(target_user_id INT)
+CREATE OR REPLACE FUNCTION usun_uzytkownika_kaskadowo(target_user_id INT, wykonawca_id INT)
 RETURNS VOID AS $$
 DECLARE
-v_wyzwanie_id INT;
+    v_wyzwanie_id INT;
+    v_target_rola VARCHAR;
 BEGIN
-    -- KROK 1: Usuwamy wszystko, czego użytkownik był AUTOREM
+    --  Pobiera role osoby którą chcemy usunąć
+    SELECT rola INTO v_target_rola FROM uzytkownicy WHERE id = target_user_id;
+
+    -- Wryfikacja: Czy wykonawca jest adminem?
+    IF (SELECT rola FROM uzytkownicy WHERE id = wykonawca_id) != 'admin' THEN
+        RAISE EXCEPTION 'Brak uprawnień: Tylko administrator może usuwać konta.';
+    END IF;
+
+    -- Wryfikacja: Czy admin próbuje usunąć samego siebie?
+    IF target_user_id = wykonawca_id THEN
+        RAISE EXCEPTION 'Blokada: Nie możesz usunąć własnego konta administratora.';
+    END IF;
+
+    -- Wryfikacja: Czy admin próbuje usunąć innego admina?
+    IF v_target_rola = 'admin' THEN
+        RAISE EXCEPTION 'Bezpieczeństwo: Nie można usunąć innego administratora systemu.';
+    END IF;
+
+    -- KROK 1: Usuwanie wszystkeigo, czego użytkownik był AUTOREM
     -- (bo to są jego "własne" dane, które blokują inne tabele)
-FOR v_wyzwanie_id IN (SELECT id FROM wyzwania WHERE autor_id = target_user_id) LOOP
-        PERFORM usun_wyzwanie_admin(v_wyzwanie_id);
-END LOOP;
+    FOR v_wyzwanie_id IN (SELECT id FROM wyzwania WHERE autor_id = target_user_id) LOOP
+            PERFORM usun_wyzwanie_admin(v_wyzwanie_id);
+    END LOOP;
 
 
-DELETE FROM progres_podzadania
-WHERE uczestnik_id IN (SELECT id FROM uczestnicy_wyzwan WHERE uzytkownik_id = target_user_id);
+    DELETE FROM progres_podzadania
+    WHERE uczestnik_id IN (SELECT id FROM uczestnicy_wyzwan WHERE uzytkownik_id = target_user_id);
 
-DELETE FROM progres_dzienne
-WHERE uczestnik_id IN (SELECT id FROM uczestnicy_wyzwan WHERE uzytkownik_id = target_user_id);
+    DELETE FROM progres_dzienne
+    WHERE uczestnik_id IN (SELECT id FROM uczestnicy_wyzwan WHERE uzytkownik_id = target_user_id);
 
--- Potem samo członkostwo w cudzych wyzwaniach
-DELETE FROM uczestnicy_wyzwan WHERE uzytkownik_id = target_user_id;
+    -- Potem samo członkostwo w cudzych wyzwaniach
+    DELETE FROM uczestnicy_wyzwan WHERE uzytkownik_id = target_user_id;
 
--- KROK 3: Usuwamy relacje towarzyskie (znajomych)
-DELETE FROM znajomi WHERE uzytkownik_id = target_user_id OR znajomy_id = target_user_id;
+    -- KROK 3: Usuwanie relacji towarzyskich (znajomych)
+    DELETE FROM znajomi WHERE uzytkownik_id = target_user_id OR znajomy_id = target_user_id;
 
--- KROK 4: Na samym końcu usuwamy profil z tabeli głównej
-DELETE FROM uzytkownicy WHERE id = target_user_id;
+    -- KROK 4: Na samym końcu usuwanie profiul z tabeli głównej
+    DELETE FROM uzytkownicy WHERE id = target_user_id;
+END;
+$$ LANGUAGE plpgsql;
+
+
+-- Widok z ograniczonymi kolumnami (Wymaganie 2a)
+CREATE OR REPLACE VIEW widok_uzytkownicy_public AS
+SELECT id, nazwa_uzytkownika, email, profilowe_url
+FROM uzytkownicy;
+
+-- Funkcja sprawdzająca admina i zwracająca zestaw wierszy
+CREATE OR REPLACE FUNCTION pobierz_uzytkownikow_dla_admina(p_wykonawca_id INT)
+RETURNS TABLE (
+    id INT,
+    nazwa_uzytkownika VARCHAR,
+    email VARCHAR,
+    profilowe_url VARCHAR
+) AS $$
+BEGIN
+    -- Baza sprawdza czy wykonawca to admin (System autoryzacji)
+    IF (SELECT rola FROM uzytkownicy WHERE uzytkownicy.id = p_wykonawca_id) != 'admin' THEN
+        RAISE EXCEPTION 'Brak uprawnień: Tylko administrator może przeglądać listę użytkowników.';
+    END IF;
+
+    -- Jeśli to admin, zwróć dane z widoku
+    RETURN QUERY SELECT * FROM widok_uzytkownicy_public;
 END;
 $$ LANGUAGE plpgsql;
