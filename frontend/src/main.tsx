@@ -18,7 +18,7 @@ import App from "./App";
 import "./index.css";
 
 // =====================================
-// 🔽 Uruchomienie aplikacji
+// Uruchomienie aplikacji
 // =====================================
 
 // Szukamy w pliku index.html elementu o ID "root"

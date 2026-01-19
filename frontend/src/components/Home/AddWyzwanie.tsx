@@ -104,7 +104,7 @@ export default function AddWyzwanie({ znajomi, onClose, onAdd }: AddWyzwanieProp
         zadanieIndex: number,
         podIndex: number,
         field: string,
-        value: any
+        value: string | number | boolean
     ) => {
         setZadaniaDzienne((prev) =>
             prev.map((z, i) =>
@@ -125,8 +125,8 @@ export default function AddWyzwanie({ znajomi, onClose, onAdd }: AddWyzwanieProp
         // Konwersja wybranych znajomych na strukturę Uczestnik
         const uczestnicy_ids = wybraniZnajomi.map(z => z.id);
 
-        console.log("DEBUG: nazwa wyzwania:", nazwa);
-        console.log("DEBUG: uczestnicy:", uczestnicy_ids);
+        // console.log("DEBUG: nazwa wyzwania:", nazwa);
+        // console.log("DEBUG: uczestnicy:", uczestnicy_ids);
 
         onAdd({
             nazwa,

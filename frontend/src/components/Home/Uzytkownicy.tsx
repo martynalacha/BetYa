@@ -7,7 +7,6 @@ interface Uzytkownik {
     email: string;
 }
 
-// DODAJEMY onUserDeleted do interfejsu propsów
 interface Props {
     onClose: () => void;
     onUserDeleted?: () => void;
@@ -23,7 +22,7 @@ const Uzytkownicy: React.FC<Props> = ({ onClose, onUserDeleted }) => {
         try {
             const payload = JSON.parse(window.atob(token.split('.')[1]));
             return payload.uzytkownik_id;
-        } catch (e) {
+        } catch {
             return null;
         }
     }, []);
@@ -42,9 +41,13 @@ const Uzytkownicy: React.FC<Props> = ({ onClose, onUserDeleted }) => {
     };
 
     useEffect(() => {
-        fetchUsers();
+        fetchUsers().catch(console.error);
     }, []);
 
+    /**
+     * Realizuje proces usuwania użytkownika: wysyła żądanie DELETE do FastAPI,
+     * aktualizuje lokalną listę (UI) oraz powiadamia komponent nadrzędny o zmianach.
+     */
     const confirmDelete = async () => {
         if (!userToDelete) return;
 
@@ -60,7 +63,7 @@ const Uzytkownicy: React.FC<Props> = ({ onClose, onUserDeleted }) => {
                 // 1. Usuwamy go z listy w tym pop-upie
                 setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
 
-                // 2. KLUCZOWE: Odświeżamy kafelki wyzwań na stronie Home
+                // 2. Odświeżamy kafelki wyzwań na stronie Home
                 if (onUserDeleted) {
                     onUserDeleted();
                 }

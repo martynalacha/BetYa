@@ -318,20 +318,23 @@ CREATE TRIGGER trg_przed_dodaniem_uczestnika
     FOR EACH ROW
     EXECUTE FUNCTION fn_obsluga_relacji_uczestnicy();
 
+-- Funkcja automatyzująca relację M:N
 CREATE OR REPLACE FUNCTION fn_dodaj_autora_do_wyzwania()
 RETURNS TRIGGER AS $$
 BEGIN
-INSERT INTO uczestnicy_wyzwan (wyzwanie_id, uzytkownik_id, zaakceptowane)
-VALUES (NEW.id, NEW.autor_id, TRUE);
+-- Wyzwalacz operuje na dodatkowej tabeli (uczestnicy_wyzwan)
+-- Automatycznie tworzy relację: Autor jest pierwszym uczestnikiem
+    INSERT INTO uczestnicy_wyzwan (wyzwanie_id, uzytkownik_id, zaakceptowane)
+    VALUES (NEW.id, NEW.autor_id, TRUE);
 
-RETURN NEW;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
 
 ----------------Trigger – automatyczne tworzenie relacji
 DROP TRIGGER IF EXISTS trg_po_utworzeniu_wyzwania ON wyzwania;
-
+-- Trigger uruchamiany PO utworzeniu wyzwania
 CREATE TRIGGER trg_po_utworzeniu_wyzwania
     AFTER INSERT ON wyzwania
     FOR EACH ROW

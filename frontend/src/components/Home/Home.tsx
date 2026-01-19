@@ -178,7 +178,7 @@ export default function Home() {
         } catch (err) {
             console.error("Błąd fetch:", err);
         }
-    };
+    }
 
     // === Pobieranie danych znajomych ===
     useEffect(() => {

@@ -55,7 +55,27 @@ interface Props {
     onRefresh?: () => void;
 }
 
+interface APIPunkt {
+    data: string;
+    procent: number;
+}
 
+interface APIHistoriaUzytkownika {
+    uczestnik_id: number;
+    nazwa_uzytkownika: string;
+    punkty: APIPunkt[];
+}
+
+interface PunktWykresu {
+    date: string;
+    [key: string]: string | number;
+}
+
+/**
+ * Dekoduje payload tokena JWT.
+ * Wykorzystuje mapowanie szesnastkowe (hex) i decodeURIComponent,
+ * aby poprawnie obsłużyć polskie znaki (UTF-8) w nazwach użytkowników.
+ */
 const parseJwt = (token: string) => {
     try {
         const base64Url = token.split('.')[1];
@@ -64,17 +84,24 @@ const parseJwt = (token: string) => {
             return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
         }).join(''));
         return JSON.parse(jsonPayload);
-    } catch (e) {
+    } catch {
         return null;
     }
 };
 
-// Zamienia "2025-12-20T00:00:00" ORAZ "2025-12-20" na czyste "2025-12-20".
+/**
+ * Sprowadza datę do formatu RRRR-MM-DD.
+ * Odcina czas (wszystko po 'T'), co pozwala na łatwe porównywanie dni na wykresie.
+ */
 const normalizeDate = (dateStr: string | undefined): string => {
     if (!dateStr) return "";
     return dateStr.split('T')[0];
 };
 
+/**
+ * Przypisuje unikalne kolory dla uczestników wyzwania.
+ * Wykorzystuje operator modulo (%), aby bezpiecznie zapętlać paletę kolorów.
+ */
 const generateDistinctColors = (count: number) => {
     const palette = [
         "#0000FF", // Niebieski
@@ -96,7 +123,10 @@ const generateDistinctColors = (count: number) => {
     return colors;
 };
 
-// Funkcja generująca daty BEZ przesuwania strefy czasowej
+/**
+ * Generuje tablicę wszystkich dni między startem a końcem wyzwania.
+ * Tworzy obiekty daty ręcznie, aby uniknąć błędów związanych ze strefami czasowymi.
+ */
 const generateDateRange = (startDate: string, endDate: string) => {
     // Upewniamy się, że wchodzą czyste stringi YYYY-MM-DD
     const startStr = normalizeDate(startDate);
@@ -132,6 +162,10 @@ const generateDateRange = (startDate: string, endDate: string) => {
     return dates;
 };
 
+/**
+ * Pobiera lokalną datę systemową w formacie RRRR-MM-DD.
+ * Gwarantuje zgodność formatu z danymi z bazy danych.
+ */
 const getLocalToday = () => {
     const d = new Date();
     return d.getFullYear() + '-'
@@ -149,12 +183,16 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
 
         const decoded = parseJwt(token);
 
-        const extractedId = decoded?.uzytkownik_id || decoded?.user_id || decoded?.sub || decoded?.id || 0;
+        const extractedId = decoded?.uzytkownik_id ||  0;
         const role = decoded?.rola || null;
 
         return { currentUserId: extractedId, userRole: role };
     }, []);
 
+    /**
+     Asynchronicznie usuwa wyzwanie z bazy danych przez API FastAPI.
+     * Wymaga tokena Bearer. Po sukcesie zamyka widok i odświeża listę wyzwań.
+     */
     const confirmDeleteWyzwanie = async () => {
         const token = localStorage.getItem("token");
         if (!token) return;
@@ -180,33 +218,51 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
         }
     };
 
+    /**
+     * @variable uczestnicyAktywni
+     * @description Filtruje listę uczestników, pozostawiając tylko tych, którzy zaakceptowali zaproszenie.
+     * Używa operatora Nullish Coalescing (??), aby zapobiec błędom, gdy lista jest pusta.
+     */
     const uczestnicyAktywni = useMemo(
         () => (wyzwanie.uczestnicy ?? []).filter(u => u.zaakceptowane),
         [wyzwanie.uczestnicy]
     );
 
+    /**
+     * @variable canEdit
+     * @description Flaga logiczna określająca uprawnienia do edycji (np. odhaczania zadań).
+     * Zwraca true, jeśli użytkownik jest autorem wyzwania lub jego aktywnym uczestnikiem.
+     */
     const canEdit = useMemo(() => {
-        // 1. Sprawdzamy czy użytkownik jest adminem
-        // na razie nie potrzebne
-        // 2. Zachowujemy dotychczasową logikę (autor lub uczestnik)
         const isAuthor = Number(wyzwanie.autor_id) === Number(currentUserId);
         const isParticipant = uczestnicyAktywni.some(u => u.id === Number(currentUserId));
 
-        // Zwracamy true, jeśli jest adminem LUB autorem/uczestnikiem
+        // Zwracamy true, jeśli jest autorem/uczestnikiem
         return isAuthor || isParticipant;
-    }, [currentUserId, userRole, wyzwanie.autor_id, uczestnicyAktywni]);
+    }, [currentUserId, wyzwanie.autor_id, uczestnicyAktywni]);
 
+    /**
+     * @variable isAdmin
+     * @description Flaga logiczna sprawdzająca, czy zalogowany użytkownik posiada uprawnienia administratora.
+     * Zapamiętuje wynik (memoize) i aktualizuje go tylko przy zmianie roli użytkownika.
+     */
     const isAdmin = useMemo(() => {
-        // Zwraca true jeśli admin, w przeciwnym razie false
         return userRole === 'admin';
     }, [userRole]);
 
     const [progresPodzadania, setProgresPodzadania] = useState<Record<number, boolean>>({});
     const [progresZadania, setProgresZadania] = useState<Record<number, boolean>>({});
-    const [wykresData, setWykresData] = useState<Record<number, any[]>>({});
+    const [wykresData, setWykresData] = useState<Record<number, PunktWykresu[]>>({});
     const [uczestnikColors, setUczestnikColors] = useState<Record<number, string>>({});
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-    // Generowanie kolorów
+
+
+    /**
+     * @hook useEffect
+     * @description Generuje i przypisuje unikalne kolory dla aktywnych uczestników wyzwania.
+     * Pomija zalogowanego użytkownika (currentUserId), który zazwyczaj ma stały kolor (np. niebieski).
+     * @dependencies [uczestnicyAktywni, currentUserId] - odświeża paletę, gdy zmieni się lista osób.
+     */
     useEffect(() => {
         const colors: Record<number, string> = {};
         const otherUsers = uczestnicyAktywni.filter(u => u.id !== currentUserId);
@@ -219,6 +275,10 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
         setUczestnikColors(colors);
     }, [uczestnicyAktywni, currentUserId]);
 
+    /**
+     * Oblicza procentowy postęp dnia wyzwania (0-100%).
+     * Uwzględnia wagi podzadań lub stan głównego zadania, jeśli brak podzadań.
+     */
     const getProgressForZadanie = (zd: ZadanieDzienne) => {
         const podzadania = zd.podzadania ?? [];
         if (podzadania.length === 0) return progresZadania[zd.id] ? 100 : 0;
@@ -230,41 +290,10 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
         return Math.round((sumaWykonane / sumaWagi) * 100);
     };
 
-    // const handleDelete = async () => {
-    //     if (!window.confirm("Czy na pewno chcesz usunąć to wyzwanie? Ta operacja jest nieodwracalna.")) {
-    //         return;
-    //     }
-    //
-    //     const token = localStorage.getItem("token");
-    //     if (!token) return;
-    //
-    //     try {
-    //         // Zwróć uwagę na endpoint - dopasuj URL do swojego API
-    //         const res = await fetch(`http://127.0.0.1:8000/wyzwania/${wyzwanie.id}`, {
-    //             method: 'DELETE',
-    //             headers: {
-    //                 'Authorization': `Bearer ${token}`
-    //             }
-    //         });
-    //
-    //         const json = await res.json();
-    //
-    //         if (json.status === "success") {
-    //             setShowDeleteConfirm(false)
-    //             onClose();
-    //             if (onRefresh) {
-    //                 onRefresh();
-    //             }
-    //         } else {
-    //             alert(json.message);
-    //         }
-    //     } catch (e) {
-    //         console.error(e);
-    //         alert("Wystąpił błąd podczas usuwania.");
-    //     }
-    //};
-
-    // Fetch danych
+    /**
+     * Synchronizuje stan aplikacji z serwerem FastAPI po otwarciu wyzwania.
+     * Pobiera statusy zadań, podzadań oraz buduje ujednoliconą historię postępów do wykresów.
+     */
     useEffect(() => {
         const token = localStorage.getItem("token");
         if (!token) return;
@@ -272,7 +301,7 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
         const fetchProgressAndCharts = async () => {
             const podzadaniaProgress: Record<number, boolean> = {};
             const zadaniaProgress: Record<number, boolean> = {};
-            const wykresy: Record<number, any[]> = {};
+            const wykresy: Record<number, PunktWykresu[]> = {};
 
             const allUsers = uczestnicyAktywni.map(u => u.nazwa_uzytkownika);
 
@@ -311,7 +340,7 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
                     }
                 }
 
-                // 3. Wykresy (POPRAWIONA LOGIKA)
+                // 3. Wykresy
                 try {
                     const res = await fetch(
                         `http://127.0.0.1:8000/wyzwania/progres/dzienne/historia/wszystkie/${zd.id}`,
@@ -323,9 +352,9 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
                         const today = getLocalToday();
 
                         // Zbieramy daty z API i normalizujemy je
-                        let apiDates: string[] = [];
-                        json.historia.forEach((u: any) => {
-                            u.punkty.forEach((p: any) => {
+                        const apiDates: string[] = [];
+                        json.historia.forEach((u: APIHistoriaUzytkownika) => {
+                            u.punkty.forEach((p: APIPunkt) => {
                                 apiDates.push(normalizeDate(p.data));
                             });
                         });
@@ -345,9 +374,9 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
                             endDate = (wyzEnd < today) ? wyzEnd : today;
                         }
 
-                        // Generowanie mapy (teraz daty będą pasować)
+                        // Generowanie mapy
                         const fullDateRange = generateDateRange(startDate, endDate);
-                        const pointsMap: Record<string, any> = {};
+                        const pointsMap: Record<string, PunktWykresu> = {};
 
                         fullDateRange.forEach(dateStr => {
                             pointsMap[dateStr] = { date: dateStr };
@@ -357,9 +386,8 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
                         });
 
                         // Wypełnianie danymi z API
-                        json.historia.forEach((u: any) => {
-                            u.punkty.forEach((p: any) => {
-                                // TU JEST FIX: normalizujemy datę z API przed szukaniem w mapie
+                        json.historia.forEach((u: APIHistoriaUzytkownika) => {
+                            u.punkty.forEach((p: APIPunkt) => {
                                 const apiDate = normalizeDate(p.data);
                                 if (pointsMap[apiDate]) {
                                     pointsMap[apiDate][u.nazwa_uzytkownika] = p.procent;
@@ -413,9 +441,9 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
             if (json.status === "success") {
                 const allUsers = uczestnicyAktywni.map(u => u.nazwa_uzytkownika);
 
-                let apiDates: string[] = [];
-                json.historia.forEach((u: any) => {
-                    u.punkty.forEach((p: any) => apiDates.push(normalizeDate(p.data)));
+                const apiDates: string[] = [];
+                json.historia.forEach((u: APIHistoriaUzytkownika) => {
+                    u.punkty.forEach((p: APIPunkt) => apiDates.push(normalizeDate(p.data)));
                 });
                 apiDates.sort();
 
@@ -432,7 +460,7 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
                 }
 
                 const fullDateRange = generateDateRange(startDate, endDate);
-                const pointsMap: Record<string, any> = {};
+                const pointsMap: Record<string, PunktWykresu> = {};
 
                 fullDateRange.forEach(dateStr => {
                     pointsMap[dateStr] = { date: dateStr };
@@ -441,8 +469,8 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
                     });
                 });
 
-                json.historia.forEach((u: any) => {
-                    u.punkty.forEach((p: any) => {
+                json.historia.forEach((u: APIHistoriaUzytkownika) => {
+                    u.punkty.forEach((p: APIPunkt) => {
                         // FIX: Normalizacja daty z API
                         const apiDate = normalizeDate(p.data);
                         if (pointsMap[apiDate]) {

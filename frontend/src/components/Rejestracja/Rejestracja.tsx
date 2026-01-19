@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Rejestracja.css"; // importujemy dopasowane style
+import "./Rejestracja.css";
 
 export default function Rejestracja() {
     // === Stany dla formularza ===
