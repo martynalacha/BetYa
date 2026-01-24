@@ -92,18 +92,18 @@ SELECT
     rola
 FROM uzytkownicy;
 
--- Funkcja, którą uruchomi wyzwalacz
+-- Funkcja i wyzwalacz do czyszczenia danych przed inserterm do tabeli uzytkownicy
 CREATE OR REPLACE FUNCTION wyzwalacz_czyszczenie_danych()
 RETURNS TRIGGER AS $$
 BEGIN
-    -- Usuwamy białe znaki (spacje) z początku i końca
+    -- Usuwamy białe znaki
     NEW.nazwa_uzytkownika := TRIM(NEW.nazwa_uzytkownika);
     NEW.email := TRIM(NEW.email);
 RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Właściwy Wyzwalacz (Wymaganie 6c)
+-- Wyzwalacz
 CREATE OR REPLACE TRIGGER trg_nowy_uzytkownik_czyszczenie
     BEFORE INSERT ON uzytkownicy
     FOR EACH ROW EXECUTE FUNCTION wyzwalacz_czyszczenie_danych();
@@ -427,15 +427,14 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-   ------------------------- WIDOKI Z HAVING  -------------------------
-
+-- WIDOK Z HAVING
 -- 1. Widok obliczający procent wykonania zadań, które posiadają podzadania.
 -- Spełnia wymaganie: Funkcja agregująca SUM w HAVING.
 CREATE OR REPLACE VIEW widok_progres_zadan_zlozonych AS
 SELECT
     uw.uzytkownik_id,
     zd.id AS zadanie_id,
-    -- Obliczamy procent: (Suma wag wykonanych / Suma wszystkich wag) * 100
+    -- Obliczam procent: (Suma wag wykonanych / Suma wszystkich wag) * 100
     CAST(
             ROUND(
                     (SUM(CASE WHEN pp.wykonane IS TRUE THEN p.waga ELSE 0 END) / SUM(p.waga)) * 100
@@ -588,7 +587,7 @@ FROM uczestnik u
 END;
 $$ LANGUAGE plpgsql;
 
-
+--Funkcja do usuwania wyzwan z weryfikacją roli
 CREATE OR REPLACE FUNCTION usun_wyzwanie_admin(p_wyzwanie_id INT, p_wykonawca_id INT)
 RETURNS TEXT AS $$
 DECLARE
@@ -641,11 +640,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 
-
-
--- ---------------------------------------------------------
--- KROK 1: Funkcja obliczająca procenty dla konkretnego dnia
--- ---------------------------------------------------------
+-- Funkcja obliczająca procenty dla konkretnego dnia
 CREATE OR REPLACE FUNCTION fn_oblicz_procent_zadania(
     p_uczestnik_id INT,
     p_zadanie_id INT,
@@ -658,12 +653,12 @@ v_suma_wag FLOAT;
     v_czy_zlozone BOOLEAN;
     v_procent INT;
 BEGIN
-    -- 1. Sprawdzamy czy zadanie ma podzadania
+    -- 1. Sprawdzam czy zadanie ma podzadania
 SELECT EXISTS (SELECT 1 FROM podzadania WHERE zadanie_id = p_zadanie_id)
 INTO v_czy_zlozone;
 
 IF v_czy_zlozone THEN
-        -- Logika dla zadań ZŁOŻONYCH (liczymy wagi)
+        -- Logika dla zadań ZŁOŻONYCH
 
         -- Suma wszystkich wag
 SELECT COALESCE(SUM(waga), 0) INTO v_suma_wag
@@ -701,9 +696,8 @@ RETURN v_procent;
 END;
 $$ LANGUAGE plpgsql;
 
--- ---------------------------------------------------------
--- KROK 2: Funkcja generująca JSON z historią (Thick DB)
--- ---------------------------------------------------------
+
+--  Funkcja generująca JSON z historią
 CREATE OR REPLACE FUNCTION fn_pobierz_historie_wykresu(p_zadanie_id INT)
 RETURNS JSON AS $$
 DECLARE
@@ -775,7 +769,7 @@ FROM (
                  SELECT json_agg(
                                 json_build_object(
                                         'data', to_char(d.dzien, 'YYYY-MM-DD'),
-                                    -- !!! TUTAJ BYŁ BŁĄD - DODANO ::date !!!
+
                                         'procent', fn_oblicz_procent_zadania(uw.id, p_zadanie_id, d.dzien::date)
                                 ) ORDER BY d.dzien
                         )
@@ -949,7 +943,7 @@ WHERE u.nazwa_uzytkownika = 'ala'
 RAISE NOTICE 'Seed zakończony poprawnie';
 END $$;
 
-
+-- ====== Zakończony seed dalsze funkcje, wyzwalzce widoki...=====
 CREATE OR REPLACE FUNCTION usun_uzytkownika_kaskadowo(target_user_id INT, wykonawca_id INT)
 RETURNS VOID AS $$
 DECLARE

@@ -471,7 +471,7 @@ const Wyzwanie: React.FC<Props> = ({ wyzwanie, onClose, onRefresh }) => {
 
                 json.historia.forEach((u: APIHistoriaUzytkownika) => {
                     u.punkty.forEach((p: APIPunkt) => {
-                        // FIX: Normalizacja daty z API
+
                         const apiDate = normalizeDate(p.data);
                         if (pointsMap[apiDate]) {
                             pointsMap[apiDate][u.nazwa_uzytkownika] = p.procent;

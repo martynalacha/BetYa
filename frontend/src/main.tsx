@@ -1,5 +1,5 @@
 // ===============================
-// 🌟 GŁÓWNY PUNKT STARTOWY APLIKACJI BETYA
+// GŁÓWNY PUNKT STARTOWY APLIKACJI BETYA
 // ===============================
 
 // Import biblioteki React — potrzebna do korzystania z JSX (czyli składni <App />)

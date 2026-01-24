@@ -16,7 +16,7 @@ export default function App() {
         document.body.className = isLight ? "light" : "dark";
     }, [isLight]);
 
-    // 🔑 sprawdzamy ścieżkę z React Router
+    //  sprawdzamy ścieżkę z React Router
     const showLogo =
         location.pathname === "/" ||
         location.pathname === "/logowanie" ||
@@ -38,7 +38,7 @@ export default function App() {
 
             <Routes>
                 <Route path="/" element={<Logowanie />} />
-                <Route path="/logowanie" element={<Logowanie />} /> {/* 🔑 dodaj ścieżkę /logowanie */}
+                <Route path="/logowanie" element={<Logowanie />} /> {/*  */}
                 <Route path="/rejestracja" element={<Rejestracja />} />
                 <Route path="/home" element={<Home />} />
             </Routes>

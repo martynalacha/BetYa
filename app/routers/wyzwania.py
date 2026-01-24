@@ -404,7 +404,7 @@ def update_progres_dzienne(
             if user_role == 'admin':
                 return schemas.UpdateProgresResponse(
                     status="admin_readonly",
-                    podzadanie_id=zadanie_id, # Tutaj używamy zadanie_id w polu podzadanie_id (lub musisz dodać pole zadanie_id do schematu jeśli je masz)
+                    podzadanie_id=zadanie_id,
                     wykonane=False,
                     message="Jesteś administratorem - to tylko podgląd."
                 )
